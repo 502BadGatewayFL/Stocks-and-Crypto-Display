@@ -1,0 +1,252 @@
+:root {
+  color-scheme: dark;
+  --bg: #050608;
+  --text: #f4f7fb;
+  --muted: #8793a4;
+  --grid: rgba(255, 255, 255, 0.12);
+  --panel: rgba(255, 255, 255, 0.06);
+  --good: #37d67a;
+  --bad: #ff4f5f;
+  --edge: rgba(255, 255, 255, 0.16);
+  --accent: #76b900;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  touch-action: none;
+  user-select: none;
+  cursor: none;
+}
+
+.stage {
+  position: relative;
+  isolation: isolate;
+  width: 100vw;
+  height: 100vh;
+  padding: 18px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background:
+    radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--accent), transparent 86%), transparent 34%),
+    linear-gradient(135deg, #071014 0%, #050608 48%, #11141c 100%);
+}
+
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), transparent 80%);
+}
+
+.ambient {
+  position: absolute;
+  z-index: -2;
+  border-radius: 999px;
+  filter: blur(44px);
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.ambient-one {
+  width: 260px;
+  height: 260px;
+  left: -60px;
+  bottom: -90px;
+  background: var(--accent);
+}
+
+.ambient-two {
+  width: 210px;
+  height: 210px;
+  right: 8%;
+  top: -110px;
+  background: #25364a;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  min-height: 52px;
+}
+
+.asset-label {
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.symbol-label {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.pager {
+  display: flex;
+  gap: 9px;
+  padding-top: 8px;
+}
+
+.dot {
+  width: 30px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
+  overflow: hidden;
+}
+
+.dot.active {
+  background: var(--accent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent), transparent 55%);
+}
+
+.content {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 330px 1fr;
+  gap: 22px;
+  align-items: stretch;
+}
+
+.price-panel {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  border: 1px solid var(--edge);
+  border-left: 5px solid var(--accent);
+  padding: 18px 20px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.035));
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.32);
+}
+
+.panel-shine {
+  position: absolute;
+  inset: -60% auto auto -20%;
+  width: 55%;
+  height: 220%;
+  transform: rotate(18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.055), transparent);
+}
+
+.price {
+  position: relative;
+  font-size: 56px;
+  line-height: 0.95;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.change {
+  position: relative;
+  margin-top: 16px;
+  font-size: 27px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.change.up {
+  color: var(--good);
+}
+
+.change.down {
+  color: var(--bad);
+}
+
+.status {
+  position: relative;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.chart-panel {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.chart-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent), transparent 94%), transparent);
+  pointer-events: none;
+}
+
+#chart {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.asset-enter .asset-label,
+.asset-enter .symbol-label,
+.asset-enter .price,
+.asset-enter .change,
+.asset-enter .status {
+  animation: assetIn 520ms ease both;
+}
+
+@keyframes assetIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .stage {
+    padding: 12px 14px;
+  }
+
+  .content {
+    grid-template-columns: 260px 1fr;
+    gap: 12px;
+  }
+
+  .asset-label {
+    font-size: 28px;
+  }
+
+  .price {
+    font-size: 42px;
+  }
+
+  .change {
+    font-size: 22px;
+  }
+}

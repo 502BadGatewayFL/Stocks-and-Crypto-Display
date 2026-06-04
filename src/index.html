@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockDisplay</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main id="app">
+      <section class="stage">
+        <div class="ambient ambient-one"></div>
+        <div class="ambient ambient-two"></div>
+        <div class="topbar">
+          <div>
+            <div id="assetLabel" class="asset-label">Loading</div>
+            <div id="symbolLabel" class="symbol-label">--</div>
+          </div>
+          <div class="pager" id="pager"></div>
+        </div>
+
+        <div class="content">
+          <div class="price-panel">
+            <div class="panel-shine"></div>
+            <div id="price" class="price">--</div>
+            <div id="change" class="change">--</div>
+            <div id="status" class="status">Starting</div>
+          </div>
+          <div class="chart-panel">
+            <canvas id="chart" width="900" height="300" aria-label="Market chart"></canvas>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
