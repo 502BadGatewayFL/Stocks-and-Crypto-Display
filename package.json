@@ -2,7 +2,7 @@
   "name": "stock-display",
   "version": "0.1.0",
   "private": true,
-  "description": "Fullscreen touchscreen market display for NVIDIA, Bitcoin, and Ethereum.",
+  "description": "Fullscreen touchscreen market display for NVIDIA, Bitcoin, and Marlin.",
   "main": "src/main.js",
   "type": "commonjs",
   "scripts": {

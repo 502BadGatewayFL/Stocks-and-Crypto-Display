@@ -1,12 +1,12 @@
 # StockDisplay
 
-Fullscreen Windows touchscreen dashboard for NVIDIA, Bitcoin, and Ethereum using Twelve Data market data.
+Fullscreen Windows touchscreen dashboard for NVIDIA, Bitcoin, and Marlin using Twelve Data market data.
 
 The app is built with Electron and plain HTML/CSS/JS. It is meant for a small secondary display, kiosk screen, or touchscreen panel, but it also works on a normal monitor.
 
 ## Features
 
-- One fullscreen page per asset: `NVDA`, `BTC/USD`, and `ETH/USD`.
+- One fullscreen page per asset: `NVDA`, `BTC/USD`, and `POND/USD`.
 - Touch swipe, left/right edge tap, and keyboard arrow navigation.
 - Canvas chart rendering for fast startup and low overhead.
 - Local cache, so the last successful data is shown immediately.

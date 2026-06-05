@@ -16,12 +16,12 @@ const ASSETS = [
     accent: '#f7931a'
   },
   {
-    id: 'eth',
-    symbol: 'ETH/USD',
-    label: 'Ethereum',
-    shortLabel: 'ETH',
+    id: 'pond',
+    symbol: 'POND/USD',
+    label: 'Marlin',
+    shortLabel: 'POND',
     kind: 'crypto',
-    accent: '#627eea'
+    accent: '#24c7d3'
   }
 ];
 
