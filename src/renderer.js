@@ -8,6 +8,7 @@ const state = {
   refreshTimer: null,
   rotateTimer: null,
   rotateSeconds: 30,
+  refreshInProgress: false,
   chartAnimationFrame: null,
   chartAnimatedAssetId: null
 };
@@ -193,7 +194,7 @@ function drawChart(progress = 1) {
     ctx.fillText(formatChartLabel(value, tickStep), pad.left - 10, y);
   }
 
-  ctx.strokeStyle = APP_ACCENT;
+  ctx.strokeStyle = asset.accent || APP_ACCENT;
   ctx.lineWidth = Math.max(2, canvas.height / 125);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
@@ -307,20 +308,27 @@ function render(options = {}) {
   renderChart({ animate: Boolean(options.animateChart) });
 }
 
-function setActiveIndex(index, options = {}) {
+function setActiveIndex(index) {
   state.activeIndex = (index + state.assets.length) % state.assets.length;
   document.body.classList.remove('asset-enter');
   void document.body.offsetWidth;
   document.body.classList.add('asset-enter');
   render({ animateChart: true });
-
-  if (!options.skipRefresh) {
-    refreshAsset(activeAsset()?.id);
-  }
 }
 
-async function refreshAsset(assetId) {
+function isAssetStale(assetId) {
+  const data = state.data[assetId];
+  const refreshMs = Math.max(30, state.refreshSeconds || 600) * 1000;
+
+  return !data?.fetchedAt || Date.now() - data.fetchedAt >= refreshMs;
+}
+
+async function refreshAsset(assetId, options = {}) {
   if (!assetId || !state.hasApiKey) {
+    return;
+  }
+
+  if (!options.force && !isAssetStale(assetId)) {
     return;
   }
 
@@ -336,15 +344,24 @@ async function refreshAsset(assetId) {
   }
 }
 
-async function refreshAll() {
+async function refreshAll(options = {}) {
+  if (state.refreshInProgress) {
+    return;
+  }
+
+  state.refreshInProgress = true;
   const active = activeAsset();
   const ordered = [
     active,
     ...state.assets.filter((asset) => asset.id !== active?.id)
   ].filter(Boolean);
 
-  for (const asset of ordered) {
-    await refreshAsset(asset.id);
+  try {
+    for (const asset of ordered) {
+      await refreshAsset(asset.id, options);
+    }
+  } finally {
+    state.refreshInProgress = false;
   }
 }
 
