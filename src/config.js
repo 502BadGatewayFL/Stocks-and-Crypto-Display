@@ -28,6 +28,7 @@ const ASSETS = [
 const DEFAULT_BASE_URL = 'https://api.twelvedata.com';
 const DEFAULT_TARGET_DISPLAY = 'waveshare';
 const DEFAULT_REFRESH_SECONDS = 600;
+const DEFAULT_ROTATE_SECONDS = 30;
 const MIN_REQUEST_GAP_MS = 1000;
 
 module.exports = {
@@ -35,5 +36,6 @@ module.exports = {
   DEFAULT_BASE_URL,
   DEFAULT_TARGET_DISPLAY,
   DEFAULT_REFRESH_SECONDS,
+  DEFAULT_ROTATE_SECONDS,
   MIN_REQUEST_GAP_MS
 };

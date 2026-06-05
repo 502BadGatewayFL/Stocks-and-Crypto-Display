@@ -7,27 +7,103 @@ const {
   DEFAULT_BASE_URL,
   DEFAULT_TARGET_DISPLAY,
   DEFAULT_REFRESH_SECONDS,
+  DEFAULT_ROTATE_SECONDS,
   MIN_REQUEST_GAP_MS
 } = require('./config');
 
-dotenv.config({ path: path.join(process.cwd(), '.env') });
+const appRoot = path.resolve(__dirname, '..');
+const envPath = path.join(appRoot, '.env');
+const settingsPath = path.join(appRoot, 'settings.json');
+
+dotenv.config({ path: envPath });
 
 let mainWindow;
 let lastRequestAt = 0;
 let requestQueue = Promise.resolve();
 
-function readRuntimeConfig() {
-  const refreshSeconds = Number.parseInt(process.env.REFRESH_SECONDS || '', 10);
+function normalizeAsset(asset, index) {
+  const fallback = ASSETS[index] || ASSETS[0];
+  const symbol = String(asset?.symbol || fallback.symbol).trim().toUpperCase();
+  const shortLabel = String(asset?.shortLabel || symbol.split('/')[0]).trim().toUpperCase();
+  const id = String(asset?.id || shortLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-') || `asset-${index + 1}`)
+    .replace(/^-+|-+$/g, '');
 
   return {
-    apiKey: process.env.TWELVEDATA_API_KEY || '',
-    baseUrl: (process.env.TWELVEDATA_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, ''),
-    targetDisplay: process.env.TARGET_DISPLAY || DEFAULT_TARGET_DISPLAY,
+    id,
+    symbol,
+    label: String(asset?.label || shortLabel).trim(),
+    shortLabel,
+    kind: asset?.kind === 'stock' ? 'stock' : 'crypto',
+    accent: /^#[0-9a-f]{6}$/i.test(asset?.accent || '') ? asset.accent : fallback.accent
+  };
+}
+
+function normalizeSettings(settings = {}) {
+  const assets = Array.isArray(settings.assets) && settings.assets.length
+    ? settings.assets.map(normalizeAsset)
+    : ASSETS;
+
+  const refreshSeconds = Number.parseInt(settings.refreshSeconds, 10);
+  const rotateSeconds = Number.parseInt(settings.rotateSeconds, 10);
+
+  return {
+    apiKey: String(settings.apiKey || process.env.TWELVEDATA_API_KEY || ''),
+    baseUrl: String(settings.baseUrl || process.env.TWELVEDATA_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, ''),
+    targetDisplay: String(settings.targetDisplay || process.env.TARGET_DISPLAY || DEFAULT_TARGET_DISPLAY),
     refreshSeconds: Number.isFinite(refreshSeconds) && refreshSeconds >= 30
       ? refreshSeconds
-      : DEFAULT_REFRESH_SECONDS,
+      : Number.parseInt(process.env.REFRESH_SECONDS || '', 10) || DEFAULT_REFRESH_SECONDS,
+    rotateSeconds: Number.isFinite(rotateSeconds) && rotateSeconds >= 5
+      ? rotateSeconds
+      : DEFAULT_ROTATE_SECONDS,
+    assets
+  };
+}
+
+async function readSettingsFile() {
+  try {
+    const raw = await fs.readFile(settingsPath, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function readSettingsFileSync() {
+  try {
+    return JSON.parse(require('node:fs').readFileSync(settingsPath, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+async function writeSettingsFile(settings) {
+  await fs.writeFile(settingsPath, `${JSON.stringify(normalizeSettings(settings), null, 2)}\n`, 'utf8');
+}
+
+async function writeEnvFile(settings) {
+  const env = {
+    TWELVEDATA_API_KEY: settings.apiKey || '',
+    TWELVEDATA_BASE_URL: settings.baseUrl || DEFAULT_BASE_URL,
+    TARGET_DISPLAY: settings.targetDisplay || DEFAULT_TARGET_DISPLAY,
+    REFRESH_SECONDS: String(settings.refreshSeconds || DEFAULT_REFRESH_SECONDS)
+  };
+
+  const lines = Object.entries(env).map(([key, value]) => `${key}=${value}`);
+  await fs.writeFile(envPath, `${lines.join('\n')}\n`, 'utf8');
+}
+
+function readRuntimeConfig() {
+  const settings = normalizeSettings(readSettingsFileSync());
+
+  return {
+    apiKey: settings.apiKey,
+    baseUrl: settings.baseUrl,
+    targetDisplay: settings.targetDisplay,
+    refreshSeconds: settings.refreshSeconds,
+    rotateSeconds: settings.rotateSeconds,
     minRequestGapMs: MIN_REQUEST_GAP_MS,
-    assets: ASSETS
+    assets: settings.assets
   };
 }
 
@@ -97,7 +173,7 @@ function findTargetDisplay() {
   return target;
 }
 
-function createWindow() {
+function createDisplayWindow() {
   const devMode = process.env.STOCK_DISPLAY_DEV === '1';
   const display = findTargetDisplay();
   const bounds = display.bounds;
@@ -137,6 +213,30 @@ function createWindow() {
   }
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
+}
+
+function createSettingsWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1040,
+    height: 760,
+    minWidth: 880,
+    minHeight: 620,
+    show: false,
+    backgroundColor: '#101317',
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    mainWindow.focus();
+  });
+
+  mainWindow.loadFile(path.join(__dirname, 'settings.html'));
 }
 
 function normalizeBars(values) {
@@ -228,6 +328,7 @@ ipcMain.handle('app:get-initial-state', async () => {
   return {
     assets: config.assets,
     refreshSeconds: config.refreshSeconds,
+    rotateSeconds: config.rotateSeconds,
     targetDisplay: config.targetDisplay,
     hasApiKey: Boolean(config.apiKey),
     cache
@@ -235,7 +336,7 @@ ipcMain.handle('app:get-initial-state', async () => {
 });
 
 ipcMain.handle('market:fetch-asset', async (_event, assetId) => {
-  const asset = ASSETS.find((item) => item.id === assetId);
+  const asset = readRuntimeConfig().assets.find((item) => item.id === assetId);
   if (!asset) {
     throw new Error(`Unknown asset: ${assetId}`);
   }
@@ -249,12 +350,29 @@ ipcMain.handle('market:fetch-asset', async (_event, assetId) => {
   });
 });
 
+ipcMain.handle('settings:get', async () => normalizeSettings(await readSettingsFile()));
+
+ipcMain.handle('settings:save', async (_event, nextSettings) => {
+  const settings = normalizeSettings(nextSettings);
+  await writeSettingsFile(settings);
+  await writeEnvFile(settings);
+  return settings;
+});
+
 app.whenReady().then(() => {
-  createWindow();
+  if (process.argv.includes('--settings')) {
+    createSettingsWindow();
+  } else {
+    createDisplayWindow();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      if (process.argv.includes('--settings')) {
+        createSettingsWindow();
+      } else {
+        createDisplayWindow();
+      }
     }
   });
 });

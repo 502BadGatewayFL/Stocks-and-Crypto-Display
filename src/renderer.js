@@ -7,11 +7,11 @@ const state = {
   hasApiKey: false,
   refreshTimer: null,
   rotateTimer: null,
+  rotateSeconds: 30,
   chartAnimationFrame: null,
   chartAnimatedAssetId: null
 };
 
-const ROTATE_INTERVAL_MS = 30000;
 const APP_ACCENT = '#76b900';
 
 const elements = {
@@ -28,17 +28,49 @@ function activeAsset() {
   return state.assets[state.activeIndex];
 }
 
-function formatPrice(value, symbol) {
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function usdFractionDigits(value, options = {}) {
+  const step = Math.abs(options.step || 0);
+  const absValue = Math.abs(value);
+
+  if (Number.isFinite(step) && step > 0 && step < 1) {
+    return clamp(Math.ceil(-Math.log10(step)) + 1, 2, 8);
+  }
+
+  if (Number.isFinite(absValue) && absValue > 0 && absValue < 1) {
+    return clamp(Math.ceil(-Math.log10(absValue)) + 3, 4, 8);
+  }
+
+  if (step > 0 && step < 10) {
+    return 2;
+  }
+
+  if (absValue < 100) {
+    return 2;
+  }
+
+  return 2;
+}
+
+function formatUsd(value, options = {}) {
   if (!Number.isFinite(value)) {
     return '--';
   }
 
-  const maximumFractionDigits = symbol === 'NVDA' ? 2 : 0;
+  const maximumFractionDigits = usdFractionDigits(value, options);
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
+    minimumFractionDigits: options.minimumFractionDigits || 0,
     maximumFractionDigits
   }).format(value);
+}
+
+function formatPrice(value) {
+  return formatUsd(value);
 }
 
 function formatChange(data) {
@@ -62,8 +94,8 @@ function formatTime(timestamp) {
   }).format(new Date(timestamp));
 }
 
-function setAccent() {
-  document.documentElement.style.setProperty('--accent', APP_ACCENT);
+function setAccent(asset) {
+  document.documentElement.style.setProperty('--accent', asset?.accent || APP_ACCENT);
 }
 
 function resizeCanvas() {
@@ -82,18 +114,8 @@ function drawEmpty(ctx, canvas, message) {
   ctx.fillText(message, canvas.width / 2, canvas.height / 2);
 }
 
-function formatChartLabel(value, symbol) {
-  if (!Number.isFinite(value)) {
-    return '--';
-  }
-
-  const maximumFractionDigits = symbol === 'NVDA' ? 2 : 0;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    notation: symbol === 'NVDA' ? 'standard' : 'compact',
-    maximumFractionDigits
-  }).format(value);
+function formatChartLabel(value, step) {
+  return formatUsd(value, { step });
 }
 
 function drawSmoothLine(ctx, points) {
@@ -159,14 +181,16 @@ function drawChart(progress = 1) {
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
 
+  const tickStep = (max - min) / 4;
+
   for (let i = 0; i <= 4; i += 1) {
     const y = pad.top + (height / 4) * i;
-    const value = max - ((max - min) / 4) * i;
+    const value = max - tickStep * i;
     ctx.beginPath();
     ctx.moveTo(pad.left, y);
     ctx.lineTo(canvas.width - pad.right, y);
     ctx.stroke();
-    ctx.fillText(formatChartLabel(value, asset.symbol), pad.left - 10, y);
+    ctx.fillText(formatChartLabel(value, tickStep), pad.left - 10, y);
   }
 
   ctx.strokeStyle = APP_ACCENT;
@@ -191,7 +215,7 @@ function drawChart(progress = 1) {
   ctx.arc(last.x, last.y, Math.max(4, canvas.height / 70), 0, Math.PI * 2);
   ctx.fill();
 
-  const label = formatChartLabel(last.value, asset.symbol);
+  const label = formatChartLabel(last.value, tickStep);
   ctx.font = `${Math.max(12, Math.floor(canvas.height / 20))}px Segoe UI, Arial`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
@@ -264,7 +288,7 @@ function render(options = {}) {
 
   elements.assetLabel.textContent = asset?.label || 'Loading';
   elements.symbolLabel.textContent = asset ? `${asset.shortLabel} / ${asset.symbol}` : '--';
-  elements.price.textContent = data ? formatPrice(data.price, asset.symbol) : '--';
+  elements.price.textContent = data ? formatPrice(data.price) : '--';
   elements.change.textContent = formatChange(data);
   elements.change.className = `change ${data?.change >= 0 ? 'up' : 'down'}`;
 
@@ -344,7 +368,7 @@ function startAutoRotate() {
     if (state.assets.length > 1) {
       setActiveIndex(state.activeIndex + 1);
     }
-  }, ROTATE_INTERVAL_MS);
+  }, Math.max(5, state.rotateSeconds || 30) * 1000);
 }
 
 async function boot() {
@@ -352,6 +376,7 @@ async function boot() {
   const initial = await window.stockDisplay.getInitialState();
   state.assets = initial.assets;
   state.refreshSeconds = initial.refreshSeconds;
+  state.rotateSeconds = initial.rotateSeconds;
   state.hasApiKey = initial.hasApiKey;
   state.data = initial.cache || {};
 

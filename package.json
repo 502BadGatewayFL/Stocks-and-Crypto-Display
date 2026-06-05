@@ -7,11 +7,13 @@
   "type": "commonjs",
   "scripts": {
     "start": "electron .",
+    "settings": "electron . --settings",
     "dev": "set STOCK_DISPLAY_DEV=1&& electron .",
-    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer.js && node --check scripts/install-startup.js && node --check scripts/remove-startup.js",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer.js && node --check src/settings.js && node --check scripts/install-startup.js && node --check scripts/remove-startup.js && node --check scripts/install-start-menu.js",
     "prepare-electron": "npx install-electron",
     "install-startup": "node scripts/install-startup.js",
-    "remove-startup": "node scripts/remove-startup.js"
+    "remove-startup": "node scripts/remove-startup.js",
+    "install-start-menu": "node scripts/install-start-menu.js"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

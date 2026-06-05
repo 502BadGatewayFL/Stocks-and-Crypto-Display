@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Display Settings</title>
+    <link rel="stylesheet" href="./settings.css">
+  </head>
+  <body>
+    <main class="settings-shell">
+      <header class="settings-header">
+        <div>
+          <h1>Stock Display Settings</h1>
+          <p id="status">Loading settings</p>
+        </div>
+        <button id="saveButton" type="button">Save Settings</button>
+      </header>
+
+      <section class="settings-grid">
+        <form id="settingsForm" class="settings-form">
+          <section class="section">
+            <h2>Data</h2>
+            <label>
+              Twelve Data API key
+              <input id="apiKey" type="password" autocomplete="off">
+            </label>
+            <label>
+              API base URL
+              <input id="baseUrl" type="url" spellcheck="false">
+            </label>
+          </section>
+
+          <section class="section">
+            <h2>Display</h2>
+            <label>
+              Target display
+              <input id="targetDisplay" type="text" spellcheck="false">
+            </label>
+            <div class="inline-fields">
+              <label>
+                Refresh seconds
+                <input id="refreshSeconds" type="number" min="30" step="30">
+              </label>
+              <label>
+                Loop seconds
+                <input id="rotateSeconds" type="number" min="5" step="5">
+              </label>
+            </div>
+          </section>
+        </form>
+
+        <section class="assets-panel">
+          <div class="assets-heading">
+            <h2>Assets</h2>
+            <button id="addAssetButton" type="button">Add Asset</button>
+          </div>
+          <div id="assetList" class="asset-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <template id="assetTemplate">
+      <article class="asset-row">
+        <div class="asset-top">
+          <strong class="asset-title">Asset</strong>
+          <button class="remove-asset" type="button">Remove</button>
+        </div>
+        <div class="asset-fields">
+          <label>
+            Label
+            <input data-field="label" type="text">
+          </label>
+          <label>
+            Symbol
+            <input data-field="symbol" type="text" spellcheck="false">
+          </label>
+          <label>
+            Short label
+            <input data-field="shortLabel" type="text" spellcheck="false">
+          </label>
+          <label>
+            Type
+            <select data-field="kind">
+              <option value="stock">Stock</option>
+              <option value="crypto">Crypto</option>
+            </select>
+          </label>
+          <label class="color-field">
+            Color
+            <input data-field="accent" type="color">
+          </label>
+        </div>
+      </article>
+    </template>
+
+    <script src="./settings.js"></script>
+  </body>
+</html>
